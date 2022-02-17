@@ -1,0 +1,12 @@
+image: mcr.microsoft.com/dotnet/sdk:6.0
+
+stages:
+  - build
+
+build:
+  stage: build
+  only:
+    - master
+  script:
+    - dotnet restore
+    - dotnet build -c Release

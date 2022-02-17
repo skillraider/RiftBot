@@ -1,0 +1,16 @@
+{
+  "profiles": {
+    "Docker": {
+      "commandName": "Docker",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Sandbox"
+      }
+    },
+    "RiftBot": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Sandbox"
+      }
+    }
+  }
+}

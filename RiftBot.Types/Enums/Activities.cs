@@ -1,0 +1,35 @@
+﻿namespace RiftBot.Types;
+
+public enum Activities
+{
+    Bounty_Hunter,
+    B_H_Rogues,
+    Dominion_Tower,
+    The_Crucible,
+    Castle_Wars_games,
+    B_A_Attackers,
+    B_A_Defenders,
+    B_A_Collectors,
+    B_A_Healers,
+    Duel_Tournament,
+    Mobilising_Armies,
+    Conquest,
+    Fist_of_Guthix,
+    GG_Athletics,
+    GG_Resource_Race,
+    WE2_Armadyl_Lifetime_Contribution,
+    WE2_Bandos_Lifetime_Contribution,
+    WE2_Armadyl_PvP_kills,
+    WE2_Bandos_PvP_kills,
+    Heist_Guard_Level,
+    Heist_Robber_Level,
+    CFP_5_game_average,
+    AF15_Cow_Tipping,
+    AF15_Rats_killed_after_the_miniquest,
+    RuneScore,
+    Clue_Scrolls_Easy,
+    Clue_Scrolls_Medium,
+    Clue_Scrolls_Hard,
+    Clue_Scrolls_Elite,
+    Clue_Scrolls_Master
+}

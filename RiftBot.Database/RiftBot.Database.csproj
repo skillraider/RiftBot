@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Migrations\20200821234203_Initial.cs" />
+    <Compile Remove="Migrations\20200821234203_Initial.Designer.cs" />
+    <Compile Remove="Migrations\20200829172221_AddHiscores.cs" />
+    <Compile Remove="Migrations\20200829172221_AddHiscores.Designer.cs" />
+    <Compile Remove="Migrations\20200918053822_DiscordInfo.cs" />
+    <Compile Remove="Migrations\20200918053822_DiscordInfo.Designer.cs" />
+    <Compile Remove="Migrations\20201103231818_test.cs" />
+    <Compile Remove="Migrations\20201103231818_test.Designer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="6.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RiftBot.Types\RiftBot.Types.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Npgsql">
+      <HintPath>TempLibs\Npgsql.dll</HintPath>
+    </Reference>
+    <Reference Include="Npgsql.EntityFrameworkCore.PostgreSQL">
+      <HintPath>TempLibs\Npgsql.EntityFrameworkCore.PostgreSQL.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
