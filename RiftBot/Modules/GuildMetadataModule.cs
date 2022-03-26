@@ -85,6 +85,8 @@ public class GuildMetadataModule : ModuleBase<SocketCommandContext>
         if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
 
         List<EventLog> eventLogs = await EventService.GetEventLogs(x => x.Event.Name == Events.UserJoined);
+        eventLogs = eventLogs.OrderByDescending(x => x.Timestamp).ToList();
+
         StringBuilder sb = new StringBuilder();
         sb.AppendLine("```");
 
@@ -92,7 +94,7 @@ public class GuildMetadataModule : ModuleBase<SocketCommandContext>
         {
             string line = $"{eventLog.Timestamp}: User Joined - {eventLog.Username} #{eventLog.Discriminator}";
             // Discord has a 2000 character message limit.
-            if (sb.Length + line.Length < 1997)
+            if (sb.Length + line.Length < 1995)
             {
                 sb.AppendLine(line);
             }
@@ -115,6 +117,8 @@ public class GuildMetadataModule : ModuleBase<SocketCommandContext>
         if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
 
         List<EventLog> eventLogs = await EventService.GetEventLogs(x => x.Event.Name == Events.UserLeft);
+        eventLogs = eventLogs.OrderByDescending(x => x.Timestamp).ToList();
+
         StringBuilder sb = new StringBuilder();
         sb.AppendLine("```");
 
@@ -122,7 +126,7 @@ public class GuildMetadataModule : ModuleBase<SocketCommandContext>
         {
             string line = $"{eventLog.Timestamp}: User Left - {eventLog.Username} #{eventLog.Discriminator}";
             // Discord has a 2000 character message limit.
-            if (sb.Length + line.Length < 1997)
+            if (sb.Length + line.Length < 1995)
             {
                 sb.AppendLine(line);
             }
