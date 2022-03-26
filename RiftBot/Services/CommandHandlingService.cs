@@ -128,7 +128,6 @@ public class CommandHandlingService
         // Command not found
         if (!command.IsSpecified)
         {
-            await context.Channel.SendMessageAsync($"Unknown command {context.Message.Content}");
             Console.WriteLine($"{DateTime.Now:G} - Unknown command: {context.Message.Content} ({context.User.Username})");
             return;
         }
