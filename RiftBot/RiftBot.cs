@@ -39,7 +39,9 @@ public class RiftBot
 
     private Task LogAsync(LogMessage log)
     {
-        Console.WriteLine($"{DateTime.Now:G} - {log.Message}\n\t{log.Exception}");
+        if (string.IsNullOrEmpty(log.Message)) return Task.CompletedTask;
+
+        Console.WriteLine($"{DateTime.Now:G} - {log.Message}");
 
         return Task.CompletedTask;
     }

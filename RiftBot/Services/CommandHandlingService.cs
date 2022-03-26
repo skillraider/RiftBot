@@ -22,6 +22,8 @@ public class CommandHandlingService
         _discordSocketClient = discordSocketClient;
         _selfAssignRoleService = selfAssignRoleService;
 
+        _commandService.CommandExecuted += CommandExecutedAsync;
+
         _discordSocketClient.Ready += Ready;
         _discordSocketClient.ReactionAdded += ReactionAdded;
         _discordSocketClient.ReactionRemoved += ReactionRemoved;
@@ -48,7 +50,6 @@ public class CommandHandlingService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"{DateTime.Now:G} - You fucked something up!");
             Console.WriteLine($"{DateTime.Now:G} - {ex.Message}");
         }
     }
@@ -71,7 +72,6 @@ public class CommandHandlingService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"{DateTime.Now:G} - You fucked something up!");
             Console.WriteLine($"{DateTime.Now:G} - {ex.Message}");
         }
     }
@@ -123,23 +123,26 @@ public class CommandHandlingService
         await _commandService.ExecuteAsync(context, argPos, _services);
     }
 
-    //private Task CommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result)
-    //{
-    //    // command is unspecified when there was a search failure (command not found); we don't care about these errors
-    //    if (!command.IsSpecified)
-    //    {
-    //        Console.WriteLine($"{DateTime.Now:G}: Unspecified command from {context.User.Username} - {context.Message}");
-    //        return Task.CompletedTask;
-    //    }
+    private async Task CommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result)
+    {
+        // Command not found
+        if (!command.IsSpecified)
+        {
+            await context.Channel.SendMessageAsync($"Unknown command {context.Message.Content}");
+            Console.WriteLine($"{DateTime.Now:G} - Unknown command: {context.Message.Content} ({context.User.Username})");
+            return;
+        }
 
-    //    // the command was successful, we don't care about this result, unless we want to log that a command succeeded.
-    //    if (result.IsSuccess)
-    //    {
-    //        return Task.CompletedTask;
-    //    }
-
-    //    // the command failed, let's notify the user that something happened.
-    //    //await context.Channel.SendMessageAsync($"error: {result}");
-    //    return Task.CompletedTask;
-    //}
+        if (result.IsSuccess)
+        {
+            Console.WriteLine($"{DateTime.Now:G} - {context.User.Username}: !{command.Value.Name}");
+        }
+        else
+        {
+            await context.Channel.SendMessageAsync($"An error occurred: {result.ErrorReason}");
+            Console.WriteLine($"{DateTime.Now:G} - {context.User.Username}: {command.Value.Name}");
+            Console.WriteLine($"\tError: {result.ErrorReason}");
+            return;
+        }
+    }
 }

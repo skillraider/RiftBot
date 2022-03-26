@@ -15,24 +15,16 @@ public class ClanModule : ModuleBase<SocketCommandContext>
     [Summary("!getxp <player name> - Get a members clan xp")]
     public async Task GetMemberXp([Remainder] string memberName)
     {
-        try
-        {
-            Console.WriteLine($"{DateTime.Now:G} - {Context.User.Username}: {Context.Message}");
-            if (memberName.StartsWith('\"') || memberName.EndsWith('\"'))
-                memberName = memberName.Trim('\"');
+        if (memberName.StartsWith('\"') || memberName.EndsWith('\"'))
+            memberName = memberName.Trim('\"');
 
-            string xp = await ClanService.GetClanMemberXp(memberName);
+        string xp = await ClanService.GetClanMemberXp(memberName);
 
-            var embed = new EmbedBuilder()
-                .WithDescription(xp)
-                .Build();
+        var embed = new EmbedBuilder()
+            .WithDescription(xp)
+            .Build();
 
-            await ReplyAsync(embed: embed);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{DateTime.Now:G} - Error:\n\t{Context.User.Username}: {Context.Message}\n\t{ex.Message}");
-        }
+        await ReplyAsync(embed: embed);
     }
 
     [Command("getpreference", RunMode=RunMode.Async)]
@@ -50,11 +42,6 @@ public class ClanModule : ModuleBase<SocketCommandContext>
         catch (ArgumentException ex)
         {
             await ReplyAsync(ex.Message);
-            Console.WriteLine($"{DateTime.Now:G} - Error:\n\t{Context.User.Username}: {Context.Message}\n\t{ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{DateTime.Now:G} - Error:\n\t{Context.User.Username}: {Context.Message}\n\t{ex.Message}");
         }
     }
 
@@ -66,7 +53,6 @@ public class ClanModule : ModuleBase<SocketCommandContext>
         {
             BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel");
             BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild");
-            Console.WriteLine($"{DateTime.Now:G} - {Context.User.Username}: {Context.Message}");
             if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
 
             await ClanService.SetPreference(playerName, true);
@@ -74,10 +60,6 @@ public class ClanModule : ModuleBase<SocketCommandContext>
         catch (ArgumentException ex)
         {
             await ReplyAsync(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{DateTime.Now:G} - Error:\n\t{Context.User.Username}: {Context.Message}\n\t{ex.Message}");
         }
     }
 
@@ -89,7 +71,6 @@ public class ClanModule : ModuleBase<SocketCommandContext>
         {
             BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel");
             BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild");
-            Console.WriteLine($"{DateTime.Now:G} - {Context.User.Username}: {Context.Message}");
             if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
 
             await ClanService.SetPreference(playerName, false);
@@ -97,10 +78,6 @@ public class ClanModule : ModuleBase<SocketCommandContext>
         catch (ArgumentException ex)
         {
             await ReplyAsync(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{DateTime.Now:G} - Error:\n\t{Context.User.Username}: {Context.Message}\n\t{ex.Message}");
         }
     }
 
@@ -122,64 +99,56 @@ public class ClanModule : ModuleBase<SocketCommandContext>
     [Summary("Admin: !rankups - Get potential rank ups")]
     public async Task GetRankUps(bool force = false)
     {
-        try
+        BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel");
+        BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild");
+        if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
+
+        if (!force)
         {
-            Console.WriteLine($"{DateTime.Now:G} - {Context.User.Username}: {Context.Message}");
-            BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel");
-            BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild");
-            if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
-
-            if (!force)
+            List<RandomMessage> randomMessages = new()
             {
-                List<RandomMessage> randomMessages = new()
-                {
-                    new($"No {Emote.Parse("<:Thefinger:725207592950956153>")}", false),
-                    new("Do it yourself!", false),
-                    new("Fuck off!", false),
-                    new("Fine... give me a few seconds", true, 3000),
-                    new("Zzzzzzzzz", false),
-                    new("Huh? Who? What?...... Oh, you again.... Go away", false),
-                    new("I need a raise", true, 3000)
-                };
+                new($"No {Emote.Parse("<:Thefinger:725207592950956153>")}", false),
+                new("Do it yourself!", false),
+                new("Fuck off!", false),
+                new("Fine... give me a few seconds", true, 3000),
+                new("Zzzzzzzzz", false),
+                new("Huh? Who? What?...... Oh, you again.... Go away", false),
+                new("I need a raise", true, 3000)
+            };
 
-                BotSetting rankupsTrollChanceSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RankupsTrollChance");
+            BotSetting rankupsTrollChanceSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RankupsTrollChance");
                 
-                Random r = new();
-                if (r.NextSingle() <= float.Parse(rankupsTrollChanceSetting.Value))
-                {
-                    int index = r.Next(0, randomMessages.Count);
-                    RandomMessage randomMessage = randomMessages[index];
+            Random r = new();
+            if (r.NextSingle() <= float.Parse(rankupsTrollChanceSetting.Value))
+            {
+                int index = r.Next(0, randomMessages.Count);
+                RandomMessage randomMessage = randomMessages[index];
 
-                    await ReplyAsync(randomMessage.Message);
+                await ReplyAsync(randomMessage.Message);
                         
-                    if (!randomMessage.RunAnyway) return;
+                if (!randomMessage.RunAnyway) return;
 
-                    await Task.Delay(randomMessage.Timeout);
-                }
+                await Task.Delay(randomMessage.Timeout);
             }
-
-            var embed = new EmbedBuilder();
-            List<MemberRankUp> memberRankUps = await ClanService.GetRankUps();
-            if (memberRankUps.Count > 0)
-            {
-                memberRankUps = memberRankUps.OrderBy(x => x.MemberName).ToList();
-                foreach (MemberRankUp memberRankUp in memberRankUps)
-                {
-                    embed.AddField($"{memberRankUp.MemberName}",
-                        $"From {memberRankUp.CurrentRank} to {memberRankUp.NewRank}\nExperience: {memberRankUp.CurrentXp:N0}/{memberRankUp.RequiredXp:N0}");
-                }
-            }
-            else
-            {
-                embed.WithDescription("Ranks are all up to date!");
-            }
-
-            await ReplyAsync(embed: embed.Build());
         }
-        catch (Exception ex)
+
+        var embed = new EmbedBuilder();
+        List<MemberRankUp> memberRankUps = await ClanService.GetRankUps();
+        if (memberRankUps.Count > 0)
         {
-            Console.WriteLine($"{DateTime.Now:G} - Error:\n\t{Context.User.Username}: {Context.Message}\n\t{ex.Message}");
+            memberRankUps = memberRankUps.OrderBy(x => x.MemberName).ToList();
+            foreach (MemberRankUp memberRankUp in memberRankUps)
+            {
+                embed.AddField($"{memberRankUp.MemberName}",
+                    $"From {memberRankUp.CurrentRank} to {memberRankUp.NewRank}\nExperience: {memberRankUp.CurrentXp:N0}/{memberRankUp.RequiredXp:N0}");
+            }
         }
+        else
+        {
+            embed.WithDescription("Ranks are all up to date!");
+        }
+
+        await ReplyAsync(embed: embed.Build());
     }
 
     [Command("update", RunMode = RunMode.Async)]
@@ -187,15 +156,7 @@ public class ClanModule : ModuleBase<SocketCommandContext>
     [RequireOwner]
     public async Task UpdateClanMembers()
     {
-        try
-        {
-            Console.WriteLine($"{DateTime.Now:G} - {Context.User.Username}: {Context.Message}");
-            await ClanService.UpdateClanMembers();
-            await ReplyAsync("Clan xp updated");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{DateTime.Now:G} - Error:\n\t{Context.User.Username}: {Context.Message}\n\t{ex.Message}");
-        }
+        await ClanService.UpdateClanMembers();
+        await ReplyAsync("Clan xp updated");
     }
 }

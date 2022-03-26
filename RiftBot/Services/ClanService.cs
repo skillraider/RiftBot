@@ -132,106 +132,99 @@ public class ClanService
 
     private async Task UpdateDatabase(string clanName, List<ClanMember> updatedClanMembers)
     {
-        try
+        Clan clan = await _context.Clan
+            .FirstOrDefaultAsync(x => x.Name == clanName);
+
+        if (clan is null)
         {
-            Clan clan = await _context.Clan
-                .FirstOrDefaultAsync(x => x.Name == clanName);
-
-            if (clan is null)
+            clan = new Clan()
             {
-                clan = new Clan()
-                {
-                    Name = clanName,
-                    NumberOfMembers = updatedClanMembers.Count,
-                    StartedTracking = DateTimeOffset.UtcNow,
-                    LastUpdated = DateTimeOffset.UtcNow
-                };
+                Name = clanName,
+                NumberOfMembers = updatedClanMembers.Count,
+                StartedTracking = DateTimeOffset.UtcNow,
+                LastUpdated = DateTimeOffset.UtcNow
+            };
 
-                await _context.Clan.AddAsync(clan);
+            await _context.Clan.AddAsync(clan);
 
+            await _context.SaveChangesAsync();
+        }
+        else
+        {
+            clan.NumberOfMembers = updatedClanMembers.Count;
+            clan.LastUpdated = DateTimeOffset.UtcNow;
+
+            _context.Clan.Update(clan);
+            await _context.SaveChangesAsync();
+        }
+
+        List<ClanMember> existingClanMembers = await _context.ClanMember
+            .Where(x => x.HasLeftClan == false).ToListAsync();
+
+        foreach (ClanMember clanMember in updatedClanMembers)
+        {
+            ClanMember existingClanMember =
+                existingClanMembers.Find(existingMember => existingMember.Name.ToLower() == clanMember.Name.ToLower());
+            if (existingClanMember is null)
+            {
+                clanMember.HasLeftClan = false;
+                clanMember.LastUpdated = DateTime.UtcNow;
+                clanMember.ClanId = clan.Id;
+
+                await _context.ClanMember.AddAsync(clanMember);
                 await _context.SaveChangesAsync();
+
+                await _context.ClanMemberExperience.AddAsync(new ClanMemberExperience()
+                {
+                    ClanExperience = clanMember.ClanExperience,
+                    ClanMemberId = clanMember.Id,
+                    Timestamp = DateTimeOffset.UtcNow
+                });
             }
             else
             {
-                clan.NumberOfMembers = updatedClanMembers.Count;
-                clan.LastUpdated = DateTimeOffset.UtcNow;
+                existingClanMember.ClanExperience = clanMember.ClanExperience;
+                existingClanMember.ClanRank = clanMember.ClanRank;
+                existingClanMember.LastUpdated = DateTime.UtcNow;
 
-                _context.Clan.Update(clan);
-                await _context.SaveChangesAsync();
-            }
-
-            List<ClanMember> existingClanMembers = await _context.ClanMember
-                .Where(x => x.HasLeftClan == false).ToListAsync();
-
-            foreach (ClanMember clanMember in updatedClanMembers)
-            {
-                ClanMember existingClanMember =
-                    existingClanMembers.Find(existingMember => existingMember.Name.ToLower() == clanMember.Name.ToLower());
-                if (existingClanMember is null)
+                var clanMemberExperience = await _context.ClanMemberExperience
+                    .FirstOrDefaultAsync(x => x.ClanMemberId == existingClanMember.Id);
+                if (clanMemberExperience is null)
                 {
-                    clanMember.HasLeftClan = false;
-                    clanMember.LastUpdated = DateTime.UtcNow;
-                    clanMember.ClanId = clan.Id;
-
-                    await _context.ClanMember.AddAsync(clanMember);
-                    await _context.SaveChangesAsync();
-
                     await _context.ClanMemberExperience.AddAsync(new ClanMemberExperience()
                     {
                         ClanExperience = clanMember.ClanExperience,
-                        ClanMemberId = clanMember.Id,
+                        ClanMemberId = existingClanMember.Id,
                         Timestamp = DateTimeOffset.UtcNow
                     });
                 }
                 else
                 {
-                    existingClanMember.ClanExperience = clanMember.ClanExperience;
-                    existingClanMember.ClanRank = clanMember.ClanRank;
-                    existingClanMember.LastUpdated = DateTime.UtcNow;
+                    clanMemberExperience.ClanExperience = clanMember.ClanExperience;
+                    clanMemberExperience.Timestamp = DateTimeOffset.UtcNow;
 
-                    var clanMemberExperience = await _context.ClanMemberExperience
-                        .FirstOrDefaultAsync(x => x.ClanMemberId == existingClanMember.Id);
-                    if (clanMemberExperience is null)
-                    {
-                        await _context.ClanMemberExperience.AddAsync(new ClanMemberExperience()
-                        {
-                            ClanExperience = clanMember.ClanExperience,
-                            ClanMemberId = existingClanMember.Id,
-                            Timestamp = DateTimeOffset.UtcNow
-                        });
-                    }
-                    else
-                    {
-                        clanMemberExperience.ClanExperience = clanMember.ClanExperience;
-                        clanMemberExperience.Timestamp = DateTimeOffset.UtcNow;
-
-                        _context.ClanMemberExperience.Update(clanMemberExperience);
-                    }
-
-                    _context.ClanMember.Update(existingClanMember);
-                    await _context.SaveChangesAsync();
+                    _context.ClanMemberExperience.Update(clanMemberExperience);
                 }
-            }
 
-            existingClanMembers = await _context.ClanMember.ToListAsync();
-            foreach (ClanMember existingClanMember in existingClanMembers)
-            {
-                ClanMember newMember = updatedClanMembers.Find(x => x.Name.ToLower() == existingClanMember.Name.ToLower());
-                if (newMember is null)
-                {
-                    var clanMemberExperience =
-                        await _context.ClanMemberExperience
-                            .FirstOrDefaultAsync(x => x.ClanMemberId == existingClanMember.Id);
-
-                    _context.ClanMember.Remove(existingClanMember);
-                    _context.ClanMemberExperience.Remove(clanMemberExperience);
-                    await _context.SaveChangesAsync();
-                }
+                _context.ClanMember.Update(existingClanMember);
+                await _context.SaveChangesAsync();
             }
         }
-        catch (Exception ex)
+
+        existingClanMembers = await _context.ClanMember.ToListAsync();
+        foreach (ClanMember existingClanMember in existingClanMembers)
         {
-            Console.WriteLine($"{DateTime.Now:G} - {ex.Message}");
+            ClanMember newMember = updatedClanMembers.Find(x => x.Name.ToLower() == existingClanMember.Name.ToLower());
+            if (newMember is null)
+            {
+                var clanMemberExperience =
+                    await _context.ClanMemberExperience
+                        .FirstOrDefaultAsync(x => x.ClanMemberId == existingClanMember.Id);
+
+                _context.ClanMember.Remove(existingClanMember);
+                _context.ClanMemberExperience.Remove(clanMemberExperience);
+                await _context.SaveChangesAsync();
+            }
         }
     }
 

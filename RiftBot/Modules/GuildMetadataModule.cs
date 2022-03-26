@@ -19,7 +19,6 @@ public class GuildMetadataModule : ModuleBase<SocketCommandContext>
     {
         BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel");
         BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild");
-        Console.WriteLine($"{DateTime.Now:G} - {Context.User.Username}: {Context.Message}");
         if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
 
         List<GuildMember> guildMembers = await GuildService.GetGuildMembersAsync();
@@ -52,7 +51,6 @@ public class GuildMetadataModule : ModuleBase<SocketCommandContext>
     {
         BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel");
         BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild");
-        Console.WriteLine($"{DateTime.Now:G} - {Context.User.Username}: {Context.Message}");
         if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
 
         List<GuildMember> guildMembers = await GuildService.GetGuildMembersAsync();
@@ -82,57 +80,59 @@ public class GuildMetadataModule : ModuleBase<SocketCommandContext>
     [Summary("Admin: !newmembers - Gets a list of new members")]
     public async Task GetNewMembers()
     {
-        try
+        BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel");
+        BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild");
+        if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
+
+        List<EventLog> eventLogs = await EventService.GetEventLogs(x => x.Event.Name == Events.UserJoined);
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine("```");
+
+        foreach (EventLog eventLog in eventLogs)
         {
-            BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel");
-            BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild");
-            Console.WriteLine($"{DateTime.Now:G} - {Context.User.Username}: {Context.Message}");
-            if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
-
-            List<EventLog> eventLogs = await EventService.GetEventLogs(x => x.Event.Name == Events.UserJoined);
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine("```");
-
-            foreach (EventLog eventLog in eventLogs)
+            string line = $"{eventLog.Timestamp}: User Joined - {eventLog.Username} #{eventLog.Discriminator}";
+            // Discord has a 2000 character message limit.
+            if (sb.Length + line.Length < 1997)
             {
-                sb.AppendLine($"{eventLog.Timestamp}: User Joined - {eventLog.Username} #{eventLog.Discriminator}");
+                sb.AppendLine(line);
             }
+            else
+            {
+                break;
+            }
+        }
 
-            sb.AppendLine("```");
-            await ReplyAsync(sb.ToString());
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{DateTime.Now:G} - Error:\n\t{Context.User.Username}: {Context.Message}\n\t{ex.Message}");
-        }
+        sb.AppendLine("```");
+        await ReplyAsync(sb.ToString());
     }
 
     [Command("lostmembers", RunMode = RunMode.Async)]
     [Summary("Admin: !lostmembers - Gets a list of members who left")]
     public async Task GetLostMembers()
     {
-        try
+        BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel");
+        BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild");
+        if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
+
+        List<EventLog> eventLogs = await EventService.GetEventLogs(x => x.Event.Name == Events.UserLeft);
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine("```");
+
+        foreach (EventLog eventLog in eventLogs)
         {
-            BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel");
-            BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild");
-            Console.WriteLine($"{DateTime.Now:G} - {Context.User.Username}: {Context.Message}");
-            if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
-
-            List<EventLog> eventLogs = await EventService.GetEventLogs(x => x.Event.Name == Events.UserLeft);
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine("```");
-
-            foreach (EventLog eventLog in eventLogs)
+            string line = $"{eventLog.Timestamp}: User Left - {eventLog.Username} #{eventLog.Discriminator}";
+            // Discord has a 2000 character message limit.
+            if (sb.Length + line.Length < 1997)
             {
-                sb.AppendLine($"{eventLog.Timestamp}: User Left - {eventLog.Username} #{eventLog.Discriminator}");
+                sb.AppendLine(line);
             }
+            else
+            {
+                break;
+            }
+        }
 
-            sb.AppendLine("```");
-            await ReplyAsync(sb.ToString());
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{DateTime.Now:G} - Error:\n\t{Context.User.Username}: {Context.Message}\n\t{ex.Message}");
-        }
+        sb.AppendLine("```");
+        await ReplyAsync(sb.ToString());
     }
 }

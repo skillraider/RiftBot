@@ -11,74 +11,60 @@ public class SelfAssignRoleService
 
     public async Task AssignRole(ISocketMessageChannel channel, SocketReaction reaction)
     {
-        try
+        List<SelfAssignableRole> reactionRoles = await _context.SelfAssignableRole.AsNoTracking()
+            .Where(x => x.MessageId == reaction.MessageId).ToListAsync();
+
+        if (reactionRoles.Count <= 0) return;
+
+        SocketGuildChannel schannel = channel as SocketGuildChannel;
+        List<SocketRole> roles = schannel?.Guild.Roles.ToList();
+        if (roles is null || roles.Count <= 0) return;
+
+        SocketRole roleToAssign = null;
+
+        foreach (SelfAssignableRole selfAssignableRole in reactionRoles)
         {
-            List<SelfAssignableRole> reactionRoles = await _context.SelfAssignableRole.AsNoTracking()
-                .Where(x => x.MessageId == reaction.MessageId).ToListAsync();
+            Emote emote = Emote.Parse(selfAssignableRole.Emote);
+            if (emote is null) continue;
 
-            if (reactionRoles.Count <= 0) return;
-
-            SocketGuildChannel schannel = channel as SocketGuildChannel;
-            List<SocketRole> roles = schannel?.Guild.Roles.ToList();
-            if (roles is null || roles.Count <= 0) return;
-
-            SocketRole roleToAssign = null;
-
-            foreach (SelfAssignableRole selfAssignableRole in reactionRoles)
+            if (emote.Name == reaction.Emote.Name)
             {
-                Emote emote = Emote.Parse(selfAssignableRole.Emote);
-                if (emote is null) continue;
-
-                if (emote.Name == reaction.Emote.Name)
-                {
-                    ulong roleId = MentionUtils.ParseRole(selfAssignableRole.Role);
-                    roleToAssign = roles.FirstOrDefault(x => x.Id == roleId);
-                    break;
-                }
-            }
-
-            if (roleToAssign is not null)
-            {
-                await (reaction.User.Value as SocketGuildUser).AddRoleAsync(roleToAssign);
+                ulong roleId = MentionUtils.ParseRole(selfAssignableRole.Role);
+                roleToAssign = roles.FirstOrDefault(x => x.Id == roleId);
+                break;
             }
         }
-        catch (Exception ex)
+
+        if (roleToAssign is not null)
         {
-            Console.WriteLine($"{DateTime.Now:G} - {ex.Message}");
+            await (reaction.User.Value as SocketGuildUser).AddRoleAsync(roleToAssign);
         }
     }
 
     public async Task RemoveRole(ISocketMessageChannel channel, SocketReaction reaction)
     {
-        try
+        List<SelfAssignableRole> reactionRoles = await _context.SelfAssignableRole.AsNoTracking()
+            .Where(x => x.MessageId == reaction.MessageId).ToListAsync();
+
+        SocketGuildChannel schannel = channel as SocketGuildChannel;
+        List<SocketRole> roles = schannel.Guild.Roles.ToList();
+
+        SocketRole roleToAssign = null;
+
+        foreach (SelfAssignableRole selfAssignableRole in reactionRoles)
         {
-            List<SelfAssignableRole> reactionRoles = await _context.SelfAssignableRole.AsNoTracking()
-                .Where(x => x.MessageId == reaction.MessageId).ToListAsync();
-
-            SocketGuildChannel schannel = channel as SocketGuildChannel;
-            List<SocketRole> roles = schannel.Guild.Roles.ToList();
-
-            SocketRole roleToAssign = null;
-
-            foreach (SelfAssignableRole selfAssignableRole in reactionRoles)
+            Emote emote = Emote.Parse(selfAssignableRole.Emote);
+            if (emote.Name == reaction.Emote.Name)
             {
-                Emote emote = Emote.Parse(selfAssignableRole.Emote);
-                if (emote.Name == reaction.Emote.Name)
-                {
-                    ulong roleId = MentionUtils.ParseRole(selfAssignableRole.Role);
-                    roleToAssign = roles.FirstOrDefault(x => x.Id == roleId);
-                    break;
-                }
-            }
-
-            if (roleToAssign != null)
-            {
-                await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(roleToAssign);
+                ulong roleId = MentionUtils.ParseRole(selfAssignableRole.Role);
+                roleToAssign = roles.FirstOrDefault(x => x.Id == roleId);
+                break;
             }
         }
-        catch (Exception ex)
+
+        if (roleToAssign != null)
         {
-            Console.WriteLine($"{DateTime.Now:G} - {ex.Message}");
+            await (reaction.User.Value as SocketGuildUser).RemoveRoleAsync(roleToAssign);
         }
     }
 
