@@ -1,13 +1,13 @@
 {
   "profiles": {
-    "Docker": {
-      "commandName": "Docker",
+    "RiftBot": {
+      "commandName": "Project",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Sandbox"
       }
     },
-    "RiftBot": {
-      "commandName": "Project",
+    "Docker": {
+      "commandName": "Docker",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Sandbox"
       }

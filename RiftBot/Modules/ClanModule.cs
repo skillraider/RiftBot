@@ -128,7 +128,9 @@ public class ClanModule : ModuleBase<SocketCommandContext>
                         
                 if (!randomMessage.RunAnyway) return;
 
+                IDisposable typingContext = Context.Channel.EnterTypingState();
                 await Task.Delay(randomMessage.Timeout);
+                typingContext.Dispose();
             }
         }
 
