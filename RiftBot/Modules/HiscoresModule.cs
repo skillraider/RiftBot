@@ -109,4 +109,16 @@ public class HiscoresModule : ModuleBase<SocketCommandContext>
         await ReplyAsync(sb2.ToString());
         await ReplyAsync(sb3.ToString());
     }
+
+    [Command("runescore", RunMode = RunMode.Async)]
+    [Summary("!runescore <name> - Get a player's runescore")]
+    public async Task GetRunescore([Remainder] string name)
+    {
+        PlayerActivities playerActivities = await HiscoresService.GetPlayerActivities(name.ToLower());
+        EmbedBuilder builder = new EmbedBuilder();
+        builder.WithAuthor(Context.User.Username, Context.User.GetAvatarUrl());
+        builder.WithThumbnailUrl("https://runescape.wiki/images/RuneScore.png?c17e3");
+        builder.AddField("Runescore", $"{playerActivities.ActivityStats[24].Total:N0}");
+        await ReplyAsync(embed: builder.Build());
+    }
 }
