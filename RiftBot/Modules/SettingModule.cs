@@ -16,12 +16,12 @@ public class SettingModule : ModuleBase<SocketCommandContext>
     {
         if (!string.IsNullOrEmpty(settingName))
         {
-            BotSetting botSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name.ToLower() == settingName.ToLower());
-            await ReplyAsync($"{botSetting.Name}: {botSetting.Value}");
+            BotSetting botSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name.ToLower() == settingName.ToLower()).ConfigureAwait(false);
+            await ReplyAsync($"{botSetting.Name}: {botSetting.Value}").ConfigureAwait(false);
         }
         else
         {
-            List<BotSetting> botSettings = await _context.BotSettings.ToListAsync();
+            List<BotSetting> botSettings = await _context.BotSettings.ToListAsync().ConfigureAwait(false);
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("```");
 
@@ -31,7 +31,7 @@ public class SettingModule : ModuleBase<SocketCommandContext>
             }
 
             sb.AppendLine("```");
-            await ReplyAsync(sb.ToString());
+            await ReplyAsync(sb.ToString()).ConfigureAwait(false);
         }
     }
 
@@ -42,19 +42,19 @@ public class SettingModule : ModuleBase<SocketCommandContext>
     {
         if (string.IsNullOrEmpty(settingName))
         {
-            await ReplyAsync("Invalid setting name");
+            await ReplyAsync("Invalid setting name").ConfigureAwait(false);
         }
 
-        BotSetting botSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name.ToLower() == settingName.ToLower());
+        BotSetting botSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name.ToLower() == settingName.ToLower()).ConfigureAwait(false);
         if (botSetting == null)
         {
-            await ReplyAsync($"Setting name ({settingName}) does not match any existing settings");
+            await ReplyAsync($"Setting name ({settingName}) does not match any existing settings").ConfigureAwait(false);
         }
 
         botSetting.Value = settingValue;
         _context.BotSettings.Update(botSetting);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync().ConfigureAwait(false);
 
-        await ReplyAsync($"{botSetting.Name} changed to {botSetting.Value}");
+        await ReplyAsync($"{botSetting.Name} changed to {botSetting.Value}").ConfigureAwait(false);
     }
 }

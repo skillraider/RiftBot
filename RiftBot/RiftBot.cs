@@ -2,19 +2,21 @@
 
 public class RiftBot
 {
+    private readonly ILogger<RiftBot> _logger;
     private readonly CommandService _commandService;
     private readonly CommandHandlingService _commandHandlingService;
     private readonly DiscordSocketClient _discordSocketClient;
     private readonly IConfiguration _config;
 
-    public RiftBot(CommandService commandService, CommandHandlingService commandHandlingService, DiscordSocketClient discordSocketClient, IConfiguration config)
+    public RiftBot(ILogger<RiftBot> logger, IConfiguration config, CommandHandlingService commandHandlingService, CommandService commandService, DiscordSocketClient discordSocketClient)
     {
+        _logger = logger;
         _config = config;
         _commandService = commandService;
         _commandHandlingService = commandHandlingService;
         _discordSocketClient = discordSocketClient;
 
-        Console.WriteLine(Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
+        _logger.LogInformation(Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
     }
 
     public async Task Run()
@@ -33,7 +35,7 @@ public class RiftBot
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"{DateTime.Now:G} - RiftBot.Run: {ex}");
+            _logger.LogInformation($"{DateTime.Now:G} - RiftBot.Run: {ex}");
         }
     }
 
@@ -41,7 +43,7 @@ public class RiftBot
     {
         if (string.IsNullOrEmpty(log.Message)) return Task.CompletedTask;
 
-        Console.WriteLine($"{DateTime.Now:G} - {log.Message}");
+        _logger.LogInformation($"{DateTime.Now:G} - {log.Message}");
 
         return Task.CompletedTask;
     }

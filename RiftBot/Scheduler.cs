@@ -4,18 +4,20 @@ namespace RiftBot;
 
 public class Scheduler
 {
+    private readonly ILogger<Scheduler> _logger;
     private readonly IConfiguration _config;
     private readonly ClanService _clanService;
 
-    public Scheduler(IConfiguration config, ClanService clanService)
+    public Scheduler(ILogger<Scheduler> logger, IConfiguration config, ClanService clanService)
     {
+        _logger = logger;
         _config = config;
         _clanService = clanService;
     }
 
-    public async Task Start()
+    public async Task StartAsync()
     {
-        Timer timer = new ()
+        Timer timer = new()
         {
             AutoReset = true,
             Enabled = true,
@@ -39,7 +41,7 @@ public class Scheduler
         {
             if (DateTimeOffset.UtcNow.Hour == 0 && DateTimeOffset.UtcNow.Minute >= 5 && _config.GetSection("RunUpdate").Value == "true")
             {
-                Console.WriteLine($"{DateTime.Now:G} - Updating clan members");
+                _logger.LogInformation($"{DateTime.Now:G} - Updating clan members");
                 _config.GetSection("RunUpdate").Value = "false";
                 await _clanService.UpdateClanMembers();
             }
@@ -51,8 +53,8 @@ public class Scheduler
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"{DateTime.Now:G} - An error occurred while trying to update clan members");
-            Console.WriteLine($"{DateTime.Now:G} - {ex.Message}");
+            _logger.LogError($"{DateTime.Now:G} - An error occurred while trying to update clan members");
+            _logger.LogError($"{DateTime.Now:G} - {ex.Message}");
         }
     }
 }

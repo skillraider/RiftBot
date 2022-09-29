@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using AsyncAwaitBestPractices;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace RiftBot;
@@ -9,12 +10,7 @@ class Program
     {
         IHost host = CreateHostBuilder().Build();
 
-        var ts = new ThreadStart(async () =>
-        {
-            await host.Services.GetRequiredService<Scheduler>().Start();
-        });
-        new Thread(ts).Start();
-            
+        host.Services.GetRequiredService<Scheduler>().StartAsync().SafeFireAndForget();
         await host.Services.GetRequiredService<RiftBot>().Run();
     }
 
@@ -22,7 +18,6 @@ class Program
         Host.CreateDefaultBuilder()
             .ConfigureAppConfiguration((hostingContext, config) =>
             {
-                config.AddJsonFile("appsettings.json", false);
                 config.AddUserSecrets<Program>(true);
             })
             .ConfigureServices((hostingContext, services) =>
@@ -43,6 +38,7 @@ class Program
                 services.AddScoped<HiscoreService>();
                 services.AddScoped<SelfAssignRoleService>();
                 services.AddScoped<GuildService>();
+                services.AddScoped<Scheduler>();
 
                 services.AddScoped<IClanMembersApi, ClanMembersApi>();
                 services.AddScoped<IHiscoresApi, HiscoresApi>();

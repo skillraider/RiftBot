@@ -15,10 +15,10 @@ public class ReactionRolesModule : ModuleBase<SocketCommandContext>
     [Summary("Admin: !createreactionrole <message_id> <role> <emote>")]
     public async Task CreateReactionRole(ulong messageId, string role, string emote)
     {
-        BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel");
-        BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild");
+        BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel").ConfigureAwait(false);
+        BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild").ConfigureAwait(false);
         if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
 
-        await SelfAssignRoleService.CreateReactionRole(messageId, role, emote);
+        await SelfAssignRoleService.CreateReactionRole(messageId, role, emote).ConfigureAwait(false);
     }
 }

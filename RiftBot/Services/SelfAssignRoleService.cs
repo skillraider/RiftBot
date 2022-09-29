@@ -9,7 +9,7 @@ public class SelfAssignRoleService
         _context = context;
     }
 
-    public async Task AssignRole(ISocketMessageChannel channel, SocketReaction reaction)
+    public async Task AssignRole(IMessageChannel channel, SocketReaction reaction)
     {
         List<SelfAssignableRole> reactionRoles = await _context.SelfAssignableRole.AsNoTracking()
             .Where(x => x.MessageId == reaction.MessageId).ToListAsync();
@@ -41,7 +41,7 @@ public class SelfAssignRoleService
         }
     }
 
-    public async Task RemoveRole(ISocketMessageChannel channel, SocketReaction reaction)
+    public async Task RemoveRole(IMessageChannel channel, SocketReaction reaction)
     {
         List<SelfAssignableRole> reactionRoles = await _context.SelfAssignableRole.AsNoTracking()
             .Where(x => x.MessageId == reaction.MessageId).ToListAsync();

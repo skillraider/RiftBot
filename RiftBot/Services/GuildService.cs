@@ -1,6 +1,6 @@
 ﻿namespace RiftBot;
 
-public class GuildService
+public class GuildService : IDisposable
 {
     private readonly IConfiguration _config;
     private readonly HttpClient _httpClient;
@@ -14,6 +14,12 @@ public class GuildService
         _httpClient = new HttpClient();
         _httpClient.BaseAddress = new Uri("https://discord.com/api/v9/");
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bot {token}");
+    }
+
+    public void Dispose()
+    {
+        _httpClient.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     public async Task<List<GuildMember>> GetGuildMembersAsync()
@@ -52,7 +58,7 @@ public class GuildService
         return guildRoles;
     }
 
-    private void MatchUsersToRoles(List<GuildMember> guildMembers, List<GuildRole> guildRoles)
+    private static void MatchUsersToRoles(List<GuildMember> guildMembers, List<GuildRole> guildRoles)
     {
         foreach (GuildMember guildMember in guildMembers)
         {

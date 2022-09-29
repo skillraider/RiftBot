@@ -1,12 +1,16 @@
-﻿namespace RunescapeApi;
+﻿using Microsoft.Extensions.Logging;
+
+namespace RunescapeApi;
 
 public class HiscoresApi : IHiscoresApi
 {
     private readonly IConfiguration _config;
+    private readonly ILogger<HiscoresApi> _logger;
 
-    public HiscoresApi(IConfiguration config)
+    public HiscoresApi(IConfiguration config, ILogger<HiscoresApi> logger)
     {
         _config = config;
+        _logger = logger;
     }
 
     public async Task<List<SkillStats>> GetPlayerStatsMain(string playerName) =>
@@ -90,7 +94,7 @@ public class HiscoresApi : IHiscoresApi
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"{DateTime.Now:G} - {ex.Message}");
+            _logger.LogInformation($"{DateTime.Now:G} - {ex.Message}");
             return new List<ActivityStats>();
         }
     }

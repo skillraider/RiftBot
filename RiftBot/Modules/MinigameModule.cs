@@ -25,6 +25,6 @@ public class MinigameModule : ModuleBase<SocketCommandContext>
         builder.Footer = new EmbedFooterBuilder();
         builder.Footer.Text = "There may be some drift in the timing.\n" +
             "If so, notify leadership.";
-        await ReplyAsync(embed: builder.Build());
+        await ReplyAsync(embed: builder.Build()).ConfigureAwait(false);
     }
 }

@@ -2,6 +2,7 @@
 
 public class ClanService
 {
+    private readonly ILogger<ClanService> _logger;
     private readonly RiftBotContext _context;
     private readonly IClanMembersApi _clanMembersApi;
 
@@ -36,7 +37,7 @@ public class ClanService
         {
             if (clanMember.ClanExperience <= clanRankRequirement.ClanExperience && rankValue < (int)clanRankRequirement.ClanRank)
             {
-                double percent = (clanMember.ClanExperience * 1.0) / clanRankRequirement.ClanExperience;
+                double percent = clanMember.ClanExperience * 1.0 / clanRankRequirement.ClanExperience;
                 xpTillMessage += $"{percent:P2} of {clanRankRequirement.ClanExperience:N0} needed for {clanRankRequirement.ClanRank}";
                 break;
             }
@@ -52,42 +53,30 @@ public class ClanService
             List<MemberRankUp> memberRankUps = new List<MemberRankUp>();
             List<ClanMember> members = await _context.ClanMember
                 .Where(x => !x.PreferPvm && !x.HasLeftClan).ToListAsync();
+            List<ClanRankRequirement> clanRankRequirements = await _context.ClanRankRequirement.OrderBy(x => x.ClanExperience).ToListAsync().ConfigureAwait(false);
 
             foreach (ClanMember member in members)
             {
                 int rankValue = GetClanRankValue(member.ClanRank);
-                if (member.ClanExperience >= 100_000_000 && rankValue < (int) ClanRanks.Corporal)
+                foreach (ClanRankRequirement requirement in clanRankRequirements)
                 {
-                    memberRankUps.Add(new MemberRankUp()
+                    if (member.ClanExperience >= requirement.ClanExperience && rankValue < (int)requirement.ClanRank)
                     {
-                        MemberName = member.Name,
-                        CurrentRank = member.ClanRank,
-                        NewRank = ClanRanks.Corporal.ToString(),
-                        CurrentXp = member.ClanExperience,
-                        RequiredXp = 100_000_000
-                    });
-                }
-                else if (member.ClanExperience >= 250_000_000 && rankValue < (int) ClanRanks.Sergeant)
-                {
-                    memberRankUps.Add(new MemberRankUp()
-                    {
-                        MemberName = member.Name,
-                        CurrentRank = member.ClanRank,
-                        NewRank = ClanRanks.Sergeant.ToString(),
-                        CurrentXp = member.ClanExperience,
-                        RequiredXp = 250_000_000
-                    });
-                }
-                else if (member.ClanExperience >= 800_000_000 && rankValue < (int) ClanRanks.Admin)
-                {
-                    memberRankUps.Add(new MemberRankUp()
-                    {
-                        MemberName = member.Name,
-                        CurrentRank = member.ClanRank,
-                        NewRank = ClanRanks.Admin.ToString(),
-                        CurrentXp = member.ClanExperience,
-                        RequiredXp = 800_000_000
-                    });
+                        MemberRankUp existingRankUp = memberRankUps.FirstOrDefault(x => x.MemberName == member.Name);
+                        if (existingRankUp is not null)
+                        {
+                            memberRankUps.Remove(existingRankUp);
+                        }
+
+                        memberRankUps.Add(new MemberRankUp()
+                        {
+                            MemberName = member.Name,
+                            CurrentRank = member.ClanRank,
+                            NewRank = requirement.ClanRank.ToString(),
+                            CurrentXp = member.ClanExperience,
+                            RequiredXp = requirement.ClanExperience
+                        });
+                    }
                 }
             }
 
@@ -95,7 +84,7 @@ public class ClanService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"{DateTime.Now:G} - {ex.Message}");
+            _logger.LogError($"{DateTime.Now:G} - {ex.Message}");
             return new List<MemberRankUp>();
         }
     }
@@ -228,7 +217,7 @@ public class ClanService
         }
     }
 
-    private int GetClanRankValue(string clanRank) => clanRank switch
+    private static int GetClanRankValue(string clanRank) => clanRank switch
     {
         "Recruit" => 0,
         "Corporal" => 1,

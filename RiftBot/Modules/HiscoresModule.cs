@@ -11,13 +11,13 @@ public class HiscoresModule : ModuleBase<SocketCommandContext>
         if (playerName.StartsWith('\"') || playerName.EndsWith('\"'))
             playerName = playerName.Trim('\"');
 
-        PlayerExperience playerExperience = await HiscoresService.GetPlayerStats(playerName);
+        PlayerExperience playerExperience = await HiscoresService.GetPlayerStats(playerName).ConfigureAwait(false);
 
         List<SkillStats> skillStats = playerExperience?.SkillStats.ToList();
 
         if (skillStats is null)
         {
-            await ReplyAsync($"{playerName} does not exist on the hiscores");
+            await ReplyAsync($"{playerName} does not exist on the hiscores").ConfigureAwait(false);
             return;
         }
 
@@ -45,7 +45,7 @@ public class HiscoresModule : ModuleBase<SocketCommandContext>
 
         sb.Append("'-----------------------------------------------'\n```");
 
-        await ReplyAsync(sb.ToString());
+        await ReplyAsync(sb.ToString()).ConfigureAwait(false);
     }
 
     [Command("hsa", RunMode = RunMode.Async)]
@@ -55,13 +55,13 @@ public class HiscoresModule : ModuleBase<SocketCommandContext>
         if (playerName.StartsWith('\"') || playerName.EndsWith('\"'))
             playerName = playerName.Trim('\"');
 
-        PlayerActivities playerActivities = await HiscoresService.GetPlayerActivities(playerName);
+        PlayerActivities playerActivities = await HiscoresService.GetPlayerActivities(playerName).ConfigureAwait(false);
 
         List<ActivityStats> activityStats = playerActivities?.ActivityStats.ToList();
 
         if (activityStats is null)
         {
-            await ReplyAsync($"{playerName} does not exist on the hiscores");
+            await ReplyAsync($"{playerName} does not exist on the hiscores").ConfigureAwait(false);
             return;
         }
 
@@ -105,20 +105,61 @@ public class HiscoresModule : ModuleBase<SocketCommandContext>
         }
         sb3.Append("'-------------------------------------------------------------'\n```");
 
-        await ReplyAsync(sb1.ToString());
-        await ReplyAsync(sb2.ToString());
-        await ReplyAsync(sb3.ToString());
+        await ReplyAsync(sb1.ToString()).ConfigureAwait(false);
+        await ReplyAsync(sb2.ToString()).ConfigureAwait(false);
+        await ReplyAsync(sb3.ToString()).ConfigureAwait(false);
     }
 
     [Command("runescore", RunMode = RunMode.Async)]
     [Summary("!runescore <name> - Get a player's runescore")]
     public async Task GetRunescore([Remainder] string name)
     {
-        PlayerActivities playerActivities = await HiscoresService.GetPlayerActivities(name.ToLower());
+        PlayerActivities playerActivities = await HiscoresService.GetPlayerActivities(name.ToLower()).ConfigureAwait(false);
         EmbedBuilder builder = new EmbedBuilder();
         builder.WithAuthor(Context.User.Username, Context.User.GetAvatarUrl());
         builder.WithThumbnailUrl("https://runescape.wiki/images/RuneScore.png?c17e3");
         builder.AddField("Runescore", $"{playerActivities.ActivityStats[24].Total:N0}");
-        await ReplyAsync(embed: builder.Build());
+        await ReplyAsync(embed: builder.Build()).ConfigureAwait(false);
+    }
+
+    [Command("bosshs", RunMode = RunMode.Async)]
+    [Summary("!bosshs <team size> - Get the top 10 kill times per team size")]
+    public async Task CheckBoss([Remainder] string teamSize)
+    {
+        string url = $"https://secure.runescape.com";
+        HttpClient client = new HttpClient();
+        client.BaseAddress = new Uri(url);
+        var response = await client.GetAsync($"/m=group_hiscores/v1/groups?groupSize={teamSize}&size=10&bossId=1&page=0");
+        if (response.IsSuccessStatusCode)
+        {
+            string content = await response.Content.ReadAsStringAsync();
+            BossHsResponse data = JsonSerializer.Deserialize<BossHsResponse>(content);
+            StringBuilder sb = new();
+            sb.AppendLine("```");
+            foreach (RecordRow row in data.Content)
+            {
+                for (int i = 0; i < row.Members.Count; i++)
+                {
+                    if (i == 0)
+                    {
+                        sb.Append($"{row.Rank} - {row.Members[i].Name}, ");
+                    }
+                    else if (i < row.Members.Count - 1)
+                    {
+                        sb.Append($"{row.Members[i].Name}, ");
+                    }
+                    else
+                    {
+                        sb.Append($"{row.Members[i].Name} - ");
+                    }
+                }
+
+                TimeSpan killTime = new(0, 0, 0, 0, (int)(row.KillTimeInSeconds * 1000));
+                sb.AppendLine($"Enrage: {row.Enrage}% - Kill Time: {killTime.Minutes:D2}:{killTime.Seconds:D2}.{killTime.Milliseconds}");
+                sb.AppendLine("");
+            }
+            sb.AppendLine("```");
+            await ReplyAsync(sb.ToString());
+        }
     }
 }

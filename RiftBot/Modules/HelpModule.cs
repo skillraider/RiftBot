@@ -48,7 +48,7 @@ public class HelpModule : ModuleBase<SocketCommandContext>
                 sb.AppendLine();
             }
 
-            await ReplyAsync(sb.ToString());
+            await ReplyAsync(sb.ToString()).ConfigureAwait(false);
         }
         else
         {
@@ -90,7 +90,7 @@ public class HelpModule : ModuleBase<SocketCommandContext>
                 sb.AppendLine();
             }
 
-            await ReplyAsync(sb.ToString());
+            await ReplyAsync(sb.ToString()).ConfigureAwait(false);
         }
     }
 }

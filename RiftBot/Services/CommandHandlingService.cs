@@ -10,11 +10,13 @@ public class CommandHandlingService
     private readonly CommandService _commandService;
     private readonly DiscordSocketClient _discordSocketClient;
     private readonly SelfAssignRoleService _selfAssignRoleService;
+    private readonly ILogger<CommandHandlingService> _logger;
 
     public CommandHandlingService(IServiceProvider services, CommandService commandService,
         DiscordSocketClient discordSocketClient, SelfAssignRoleService selfAssignRoleService,
-        RiftBotContext context)
+        RiftBotContext context, ILogger<CommandHandlingService> logger)
     {
+        _logger = logger;
         _services = services;
 
         _context = context;
@@ -46,15 +48,15 @@ public class CommandHandlingService
                 Timestamp = DateTimeOffset.UtcNow
             });
 
-            Console.WriteLine($"{DateTime.Now:G} - New member: {arg.Username} #{arg.Discriminator}");
+            _logger.LogInformation($"{DateTime.Now:G} - New member: {arg.Username} #{arg.Discriminator}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"{DateTime.Now:G} - {ex.Message}");
+            _logger.LogError($"{DateTime.Now:G} - {ex.Message}");
         }
     }
 
-    private async Task UserLeft(SocketGuildUser arg)
+    private async Task UserLeft(SocketGuild guild, SocketUser user)
     {
         try
         {
@@ -62,17 +64,17 @@ public class CommandHandlingService
 
             _context.EventLog.Add(new()
             {
-                Username = arg.Username,
-                Discriminator = arg.Discriminator,
+                Username = user.Username,
+                Discriminator = user.Discriminator,
                 EventId = eventId,
                 Timestamp = DateTimeOffset.UtcNow
             });
 
-            Console.WriteLine($"{DateTime.Now:G} - Member left: {arg.Username} #{arg.Discriminator}");
+            _logger.LogInformation($"{DateTime.Now:G} - Member left: {user.Username} #{user.Discriminator}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"{DateTime.Now:G} - {ex.Message}");
+            _logger.LogError($"{DateTime.Now:G} - {ex.Message}");
         }
     }
 
@@ -92,18 +94,18 @@ public class CommandHandlingService
         await (channel as ISocketMessageChannel).SendMessageAsync("Ready");
     }
 
-    private async Task ReactionAdded(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+    private async Task ReactionAdded(Cacheable<IUserMessage, ulong> message, Cacheable<IMessageChannel, ulong> channel, SocketReaction reaction)
     {
         if (reaction.UserId == _discordSocketClient.CurrentUser.Id) return;
 
-        await _selfAssignRoleService.AssignRole(channel, reaction);
+        await _selfAssignRoleService.AssignRole(channel.Value, reaction);
     }
 
-    private async Task ReactionRemoved(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+    private async Task ReactionRemoved(Cacheable<IUserMessage, ulong> message, Cacheable<IMessageChannel, ulong> channel, SocketReaction reaction)
     {
         if (reaction.User.Value.IsBot) return;
 
-        await _selfAssignRoleService.RemoveRole(channel, reaction);
+        await _selfAssignRoleService.RemoveRole(channel.Value, reaction);
     }
 
     private async Task MessageReceivedAsync(SocketMessage rawMessage)
@@ -128,19 +130,19 @@ public class CommandHandlingService
         // Command not found
         if (!command.IsSpecified)
         {
-            Console.WriteLine($"{DateTime.Now:G} - Unknown command: {context.Message.Content} ({context.User.Username})");
+            _logger.LogInformation($"{DateTime.Now:G} - Unknown command: {context.Message.Content} ({context.User.Username})");
             return;
         }
 
         if (result.IsSuccess)
         {
-            Console.WriteLine($"{DateTime.Now:G} - {context.User.Username}: !{command.Value.Name}");
+            _logger.LogInformation($"{DateTime.Now:G} - {context.User.Username}: !{command.Value.Name}");
         }
         else
         {
             await context.Channel.SendMessageAsync($"An error occurred: {result.ErrorReason}");
-            Console.WriteLine($"{DateTime.Now:G} - {context.User.Username}: {command.Value.Name}");
-            Console.WriteLine($"\tError: {result.ErrorReason}");
+            _logger.LogInformation($"{DateTime.Now:G} - {context.User.Username}: {command.Value.Name}");
+            _logger.LogInformation($"\tError: {result.ErrorReason}");
             return;
         }
     }
