@@ -22,6 +22,10 @@ class Program
             })
             .ConfigureServices((hostingContext, services) =>
             {
+                services.AddSingleton(new DiscordSocketConfig()
+                {
+                    GatewayIntents = GatewayIntents.All
+                });
                 services.AddScoped<DiscordSocketClient>();
                 services.AddScoped<CommandService>();
                 services.AddScoped<CommandHandlingService>();
