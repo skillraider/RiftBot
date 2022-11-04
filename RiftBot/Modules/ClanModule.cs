@@ -1,88 +1,154 @@
 ﻿namespace RiftBot;
 
-public class ClanModule : ModuleBase<SocketCommandContext>
+public class ClanModule
 {
+    private readonly ILogger<ClanModule> _logger;
+    private readonly ClanService _clanService;
     private readonly RiftBotContext _context;
 
-    public ClanService ClanService { get; set; }
-
-    public ClanModule(RiftBotContext context)
+    public ClanModule(ILogger<ClanModule> logger, RiftBotContext context, ClanService clanService)
     {
+        _logger = logger;
+        _clanService = clanService;
         _context = context;
     }
 
-    [Command("getxp", RunMode = RunMode.Async)]
-    [Summary("!getxp <player name> - Get a members clan xp")]
-    public async Task GetMemberXp([Remainder] string memberName)
+    public List<SlashCommand> RegisterSlashCommands()
     {
-        if (string.IsNullOrEmpty(memberName))
+        return new()
         {
-            await ReplyAsync("Invalid player name").ConfigureAwait(false);
-        }
-
-        if (memberName.StartsWith('\"') || memberName.EndsWith('\"'))
-            memberName = memberName.Trim('\"');
-
-        string xp = await ClanService.GetClanMemberXp(memberName).ConfigureAwait(false);
-
-        var embed = new EmbedBuilder()
-            .WithDescription(xp)
-            .Build();
-
-        await ReplyAsync(embed: embed).ConfigureAwait(false);
+            new()
+            {
+                CommandName = "rankups",
+                Description = "Check clan memebers clan experience to see if they qualify for a rank up",
+                CommandHandler = (SocketSlashCommand command) => GetRankUps(command)
+            },
+            new()
+            {
+                CommandName = "clan-experience",
+                Description = "Get a clan member's clan experience",
+                CommandHandler = (SocketSlashCommand command) => GetClanMemberExperience(command),
+                Options = new()
+                {
+                    new()
+                    {
+                        Name = "playername",
+                        Description = "In game player name",
+                        Type = ApplicationCommandOptionType.String,
+                        Required = true
+                    }
+                }
+            },
+            new()
+            {
+                CommandName = "get-rank-preference",
+                Description = "Get a clan member's rank type preference",
+                CommandHandler = (SocketSlashCommand command) => GetMemberPreference(command),
+                Options = new()
+                {
+                    new()
+                    {
+                        Name = "playername",
+                        Description = "In game player name",
+                        Type = ApplicationCommandOptionType.String,
+                        Required = true
+                    }
+                }
+            },
+            new()
+            {
+                CommandName = "set-rank-preference",
+                Description = "Set a clan member's rank type preference",
+                CommandHandler = (SocketSlashCommand command) => SetMemberPreference(command),
+                Options = new()
+                {
+                    new()
+                    {
+                        Name = "playername",
+                        Description = "In game player name",
+                        Type = ApplicationCommandOptionType.String,
+                        Required = true
+                    },
+                    new()
+                    {
+                        Name = "preference",
+                        Description = "Rank type, pvm or skilling",
+                        Type = ApplicationCommandOptionType.String,
+                        Required = true
+                    }
+                }
+            }
+        };
     }
 
-    [Command("getpreference", RunMode = RunMode.Async)]
-    [Summary("!getpreference <playername> - returns the members current preference")]
-    public async Task GetMemberPreference([Remainder] string memberName)
+    public async Task GetClanMemberExperience(SocketSlashCommand command)
     {
         try
         {
+            string memberName = command.Data.Options.First(x => x.Name == "playername").Value.ToString();
+            if (string.IsNullOrEmpty(memberName))
+            {
+                await command.RespondAsync("Invalid player name").ConfigureAwait(false);
+            }
+
             if (memberName.StartsWith('\"') || memberName.EndsWith('\"'))
                 memberName = memberName.Trim('\"');
 
-            string preference = await ClanService.GetPreference(memberName).ConfigureAwait(false) ? "pvm" : "skilling";
-            await ReplyAsync($"{memberName}'s preference is set to {preference}").ConfigureAwait(false);
+            string xp = await _clanService.GetClanMemberXp(memberName).ConfigureAwait(false);
+
+            var embed = new EmbedBuilder()
+                .WithDescription(xp)
+                .Build();
+
+            await command.ModifyOriginalResponseAsync(x => x.Embed = embed).ConfigureAwait(false);
         }
-        catch (ArgumentException ex)
+        catch (Exception ex)
         {
-            await ReplyAsync(ex.Message).ConfigureAwait(false);
+            _logger.LogError(ex.Message);
         }
     }
 
-    [Command("preferpvm", RunMode = RunMode.Async)]
-    [Summary("Admin: !preferpvm <playername> - Removes player from skilling rankup consideration")]
-    public async Task PreferPvm([Remainder] string playerName)
+    public async Task GetMemberPreference(SocketSlashCommand command)
     {
         try
         {
-            BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel").ConfigureAwait(false);
-            BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild").ConfigureAwait(false);
-            if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
+            string playerName = command.Data.Options.First(x => x.Name == "playername").Value.ToString();
+            if (playerName.StartsWith('\"') || playerName.EndsWith('\"'))
+                playerName = playerName.Trim('\"');
 
-            await ClanService.SetPreference(playerName, true).ConfigureAwait(false);
+            string preference = await _clanService.GetPreference(playerName).ConfigureAwait(false) ? "pvm" : "skilling";
+            await command.ModifyOriginalResponseAsync(x => x.Content = $"{playerName}'s preference is set to {preference}").ConfigureAwait(false);
         }
         catch (ArgumentException ex)
         {
-            await ReplyAsync(ex.Message).ConfigureAwait(false);
+            await command.ModifyOriginalResponseAsync(x => x.Content = ex.Message).ConfigureAwait(false);
+            _logger.LogError(ex.Message);
         }
     }
 
-    [Command("preferskilling", RunMode = RunMode.Async)]
-    [Summary("Admin: !preferskilling <playername> - Adds player to skilling rankup consideration")]
-    public async Task PreferSkilling([Remainder] string playerName)
+    public async Task SetMemberPreference(SocketSlashCommand command)
     {
         try
         {
+            string playerName = command.Data.Options.First(x => x.Name == "playername").Value.ToString();
+            string preference = command.Data.Options.First(x => x.Name == "preference").Value.ToString();
+            if (preference.ToLower() != "pvm" && preference.ToLower() != "skilling")
+            {
+                await command.ModifyOriginalResponseAsync(x => x.Content = "Invalid preference, please use \"pvm\" or \"skilling\"");
+                return;
+            }
+
             BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel").ConfigureAwait(false);
             BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild").ConfigureAwait(false);
-            if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
+            if (command.Channel.Name != restrictedCommandChannelSetting.Value && command.GuildId != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
 
-            await ClanService.SetPreference(playerName, false).ConfigureAwait(false);
+            bool pvm = preference.ToLower() == "pvm";
+            await _clanService.SetPreference(playerName, pvm).ConfigureAwait(false);
+            await command.ModifyOriginalResponseAsync(x => x.Content = $"{playerName}'s preference has been set to {preference}").ConfigureAwait(false);
         }
         catch (ArgumentException ex)
         {
-            await ReplyAsync(ex.Message).ConfigureAwait(false);
+            _logger.LogError(ex.Message);
         }
     }
 
@@ -100,13 +166,12 @@ public class ClanModule : ModuleBase<SocketCommandContext>
         public int Timeout { get; set; }
     }
 
-    [Command("rankups", RunMode = RunMode.Async)]
-    [Summary("Admin: !rankups - Get potential rank ups")]
-    public async Task GetRankUps(bool force = false)
+    public async Task GetRankUps(SocketSlashCommand command)
     {
+        bool force = false;
         BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel").ConfigureAwait(false);
         BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild").ConfigureAwait(false);
-        if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
+        if (command.Channel.Name != restrictedCommandChannelSetting.Value && command.GuildId != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
 
         if (!force)
         {
@@ -129,18 +194,21 @@ public class ClanModule : ModuleBase<SocketCommandContext>
                 int index = r.Next(0, randomMessages.Count);
                 RandomMessage randomMessage = randomMessages[index];
 
-                await ReplyAsync(randomMessage.Message).ConfigureAwait(false);
+                await command.ModifyOriginalResponseAsync((message) =>
+                {
+                    message.Content = randomMessage.Message;
+                }).ConfigureAwait(false);
 
                 if (!randomMessage.RunAnyway) return;
 
-                IDisposable typingContext = Context.Channel.EnterTypingState();
+                IDisposable typingContext = command.Channel.EnterTypingState();
                 await Task.Delay(randomMessage.Timeout).ConfigureAwait(false);
                 typingContext.Dispose();
             }
         }
 
         var embed = new EmbedBuilder();
-        List<MemberRankUp> memberRankUps = await ClanService.GetRankUps().ConfigureAwait(false);
+        List<MemberRankUp> memberRankUps = await _clanService.GetRankUps().ConfigureAwait(false);
         if (memberRankUps.Count > 0)
         {
             memberRankUps = memberRankUps.OrderBy(x => x.MemberName).ToList();
@@ -155,15 +223,9 @@ public class ClanModule : ModuleBase<SocketCommandContext>
             embed.WithDescription("Ranks are all up to date!");
         }
 
-        await ReplyAsync(embed: embed.Build()).ConfigureAwait(false);
-    }
-
-    [Command("update", RunMode = RunMode.Async)]
-    [Summary("!update")]
-    [RequireOwner]
-    public async Task UpdateClanMembers()
-    {
-        await ClanService.UpdateClanMembers().ConfigureAwait(false);
-        await ReplyAsync("Clan xp updated").ConfigureAwait(false);
+        await command.ModifyOriginalResponseAsync((message) =>
+        {
+            message.Embed = embed.Build();
+        }).ConfigureAwait(false);
     }
 }
