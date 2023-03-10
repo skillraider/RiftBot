@@ -1,6 +1,7 @@
 ﻿using AsyncAwaitBestPractices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using RiftBot.Modules;
 
 namespace RiftBot;
 
@@ -11,7 +12,8 @@ class Program
         IHost host = CreateHostBuilder().Build();
 
         host.Services.GetRequiredService<Scheduler>().StartAsync().SafeFireAndForget();
-        await host.Services.GetRequiredService<RiftBot>().Run();
+        CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+        await host.Services.GetRequiredService<RiftBot>().RunAsync(cancellationTokenSource.Token);
     }
 
     private static IHostBuilder CreateHostBuilder() =>
@@ -27,8 +29,6 @@ class Program
                     GatewayIntents = GatewayIntents.All
                 });
                 services.AddScoped<DiscordSocketClient>();
-                services.AddScoped<CommandService>();
-                services.AddScoped<CommandHandlingService>();
 
                 services.AddTransient<RiftBot>();
                 services.AddTransient<Scheduler>();
@@ -37,12 +37,22 @@ class Program
                 {
                     options.UseNpgsql(hostingContext.Configuration.GetConnectionString("Default"));
                 });
+
+                services.AddScoped<ClanModule>();
                 services.AddScoped<ClanService>();
+
                 services.AddScoped<EventService>();
+
+                services.AddScoped<HiscoresModule>();
                 services.AddScoped<HiscoreService>();
+
+                services.AddScoped<ReactionRolesModule>();
                 services.AddScoped<SelfAssignRoleService>();
+
+                services.AddScoped<GuildMetadataModule>();
                 services.AddScoped<GuildService>();
-                services.AddScoped<Scheduler>();
+
+                services.AddScoped<SettingModule>();
 
                 services.AddScoped<IClanMembersApi, ClanMembersApi>();
                 services.AddScoped<IHiscoresApi, HiscoresApi>();

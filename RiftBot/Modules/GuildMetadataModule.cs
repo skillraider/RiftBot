@@ -1,27 +1,58 @@
 ﻿namespace RiftBot;
 
-public class GuildMetadataModule : ModuleBase<SocketCommandContext>
+public class GuildMetadataModule
 {
     private readonly RiftBotContext _context;
 
-    public GuildService GuildService { get; set; }
+    private readonly GuildService _guildService;
 
-    public EventService EventService { get; set; }
+    private readonly EventService _eventService;
 
-    public GuildMetadataModule(RiftBotContext context)
+    public GuildMetadataModule(RiftBotContext context, GuildService guildService, EventService eventService)
     {
         _context = context;
+        _guildService = guildService;
+        _eventService = eventService;
     }
 
-    [Command("memberstats", RunMode = RunMode.Async)]
-    [Summary("Admin: !memberstats - Returns the number of each type of discord member. (Clannie, Clan Friend, no rank)")]
-    public async Task GetMemberCountByType()
+    public List<SlashCommand> RegisterSlashCommands()
+    {
+        return new()
+        {
+            new()
+            {
+                CommandName = "guild-member-stats",
+                Description = "Check the number of each type of discord member. (Clannie, Clan Friend, no rank)",
+                CommandHandler = (SocketSlashCommand command) => GetMemberCountByType(command)
+            },
+            new()
+            {
+                CommandName = "guild-members-without-roles",
+                Description = "Get the discord members that do not have a \"Clannie\" or \"Clan Friend\" role",
+                CommandHandler = (SocketSlashCommand command) => GetUnmarkedMembers(command)
+            },
+            new()
+            {
+                CommandName = "get-new-discord-members",
+                Description = "Get a list of Discord members that have recently joined",
+                CommandHandler = (SocketSlashCommand command) => GetNewMembers(command)
+            },
+            new()
+            {
+                CommandName = "get-lost-discord-members",
+                Description = "Get a list of Discord members that have recently left",
+                CommandHandler = (SocketSlashCommand command) => GetLostMembers(command)
+            }
+        };
+    }
+
+    public async Task GetMemberCountByType(SocketSlashCommand command)
     {
         BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel").ConfigureAwait(false);
         BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild").ConfigureAwait(false);
-        if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
+        if (command.Channel.Name != restrictedCommandChannelSetting.Value && command.GuildId != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
 
-        List<GuildMember> guildMembers = await GuildService.GetGuildMembersAsync().ConfigureAwait(false);
+        List<GuildMember> guildMembers = await _guildService.GetGuildMembersAsync().ConfigureAwait(false);
 
         int clannies = 0;
         int clanFriends = 0;
@@ -42,18 +73,16 @@ public class GuildMetadataModule : ModuleBase<SocketCommandContext>
             }
         }
 
-        await ReplyAsync($"{guildMembers.Count} Members\n{clannies} Clannies\n{clanFriends} Clan Friends\n{unknown} Not Marked").ConfigureAwait(false);
+        await command.ModifyOriginalResponseAsync(x => x.Content = $"{guildMembers.Count} Members\n{clannies} Clannies\n{clanFriends} Clan Friends\n{unknown} Not Marked").ConfigureAwait(false);
     }
 
-    [Command("getunmarked", RunMode = RunMode.Async)]
-    [Summary("Admin: !getunmarked - Returns the discord members that do not have a \"Clannie\" or \"Clan Friend\" rank")]
-    public async Task GetUnmarkedMembers()
+    public async Task GetUnmarkedMembers(SocketSlashCommand command)
     {
         BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel").ConfigureAwait(false);
         BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild").ConfigureAwait(false);
-        if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
+        if (command.Channel.Name != restrictedCommandChannelSetting.Value && command.GuildId != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
 
-        List<GuildMember> guildMembers = await GuildService.GetGuildMembersAsync().ConfigureAwait(false);
+        List<GuildMember> guildMembers = await _guildService.GetGuildMembersAsync().ConfigureAwait(false);
 
         StringBuilder sb = new StringBuilder();
         foreach (GuildMember member in guildMembers.OrderBy(x => x.Nickname).ThenBy(x => x.User.Username))
@@ -73,18 +102,16 @@ public class GuildMetadataModule : ModuleBase<SocketCommandContext>
             }
         }
 
-        await ReplyAsync(sb.ToString()).ConfigureAwait(false);
+        await command.ModifyOriginalResponseAsync(x => x.Content = sb.ToString()).ConfigureAwait(false);
     }
 
-    [Command("newmembers", RunMode = RunMode.Async)]
-    [Summary("Admin: !newmembers - Gets a list of new members")]
-    public async Task GetNewMembers()
+    public async Task GetNewMembers(SocketSlashCommand command)
     {
         BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel").ConfigureAwait(false);
         BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild").ConfigureAwait(false);
-        if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
+        if (command.Channel.Name != restrictedCommandChannelSetting.Value && command.GuildId != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
 
-        List<EventLog> eventLogs = await EventService.GetEventLogs(x => x.Event.Name == Events.UserJoined).ConfigureAwait(false);
+        List<EventLog> eventLogs = await _eventService.GetEventLogs(x => x.Event.Name == Events.UserJoined).ConfigureAwait(false);
         eventLogs = eventLogs.OrderByDescending(x => x.Timestamp).ToList();
 
         StringBuilder sb = new StringBuilder();
@@ -105,18 +132,16 @@ public class GuildMetadataModule : ModuleBase<SocketCommandContext>
         }
 
         sb.AppendLine("```");
-        await ReplyAsync(sb.ToString()).ConfigureAwait(false);
+        await command.ModifyOriginalResponseAsync(x => x.Content = sb.ToString()).ConfigureAwait(false);
     }
 
-    [Command("lostmembers", RunMode = RunMode.Async)]
-    [Summary("Admin: !lostmembers - Gets a list of members who left")]
-    public async Task GetLostMembers()
+    public async Task GetLostMembers(SocketSlashCommand command)
     {
         BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel").ConfigureAwait(false);
         BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild").ConfigureAwait(false);
-        if (Context.Channel.Name != restrictedCommandChannelSetting.Value && Context.Guild.Id != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
+        if (command.Channel.Name != restrictedCommandChannelSetting.Value && command.GuildId != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
 
-        List<EventLog> eventLogs = await EventService.GetEventLogs(x => x.Event.Name == Events.UserLeft).ConfigureAwait(false);
+        List<EventLog> eventLogs = await _eventService.GetEventLogs(x => x.Event.Name == Events.UserLeft).ConfigureAwait(false);
         eventLogs = eventLogs.OrderByDescending(x => x.Timestamp).ToList();
 
         StringBuilder sb = new StringBuilder();
@@ -137,6 +162,6 @@ public class GuildMetadataModule : ModuleBase<SocketCommandContext>
         }
 
         sb.AppendLine("```");
-        await ReplyAsync(sb.ToString()).ConfigureAwait(false);
+        await command.ModifyOriginalResponseAsync(x => x.Content = sb.ToString()).ConfigureAwait(false);
     }
 }
