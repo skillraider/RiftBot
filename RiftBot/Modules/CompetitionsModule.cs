@@ -120,7 +120,7 @@ public class CompetitionsModule
             mb.AddTextInput("Start Date", "startDate", TextInputStyle.Short, placeholder: "01/01/1970", required: true);
             mb.AddTextInput("End Date", "endDate", TextInputStyle.Short, placeholder: "01/01/1970", required: true);
             mb.AddTextInput("Participants", "participants", TextInputStyle.Paragraph, placeholder: "*rift\nskillraider", required: true);
-            mb.AddTextInput("Secret Pin", "secretPin", TextInputStyle.Short, placeholder: "01/01/1970", minLength: 6, maxLength: 6, required: true);
+            mb.AddTextInput("Secret Pin", "secretPin", TextInputStyle.Short, placeholder: "123456", minLength: 6, maxLength: 6, required: true);
             await command.RespondWithModalAsync(mb.Build());
         }
         catch (Exception ex)
