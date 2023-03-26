@@ -48,10 +48,6 @@ public class GuildMetadataModule
 
     public async Task GetMemberCountByType(SocketSlashCommand command)
     {
-        BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel").ConfigureAwait(false);
-        BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild").ConfigureAwait(false);
-        if (command.Channel.Name != restrictedCommandChannelSetting.Value && command.GuildId != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
-
         List<GuildMember> guildMembers = await _guildService.GetGuildMembersAsync().ConfigureAwait(false);
 
         int clannies = 0;
@@ -78,10 +74,6 @@ public class GuildMetadataModule
 
     public async Task GetUnmarkedMembers(SocketSlashCommand command)
     {
-        BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel").ConfigureAwait(false);
-        BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild").ConfigureAwait(false);
-        if (command.Channel.Name != restrictedCommandChannelSetting.Value && command.GuildId != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
-
         List<GuildMember> guildMembers = await _guildService.GetGuildMembersAsync().ConfigureAwait(false);
 
         StringBuilder sb = new StringBuilder();
@@ -107,10 +99,6 @@ public class GuildMetadataModule
 
     public async Task GetNewMembers(SocketSlashCommand command)
     {
-        BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel").ConfigureAwait(false);
-        BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild").ConfigureAwait(false);
-        if (command.Channel.Name != restrictedCommandChannelSetting.Value && command.GuildId != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
-
         List<EventLog> eventLogs = await _eventService.GetEventLogs(x => x.Event.Name == Events.UserJoined).ConfigureAwait(false);
         eventLogs = eventLogs.OrderByDescending(x => x.Timestamp).ToList();
 
@@ -137,10 +125,6 @@ public class GuildMetadataModule
 
     public async Task GetLostMembers(SocketSlashCommand command)
     {
-        BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel").ConfigureAwait(false);
-        BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild").ConfigureAwait(false);
-        if (command.Channel.Name != restrictedCommandChannelSetting.Value && command.GuildId != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
-
         List<EventLog> eventLogs = await _eventService.GetEventLogs(x => x.Event.Name == Events.UserLeft).ConfigureAwait(false);
         eventLogs = eventLogs.OrderByDescending(x => x.Timestamp).ToList();
 

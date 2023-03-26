@@ -54,10 +54,6 @@ public class ReactionRolesModule : ModuleBase<SocketCommandContext>
         ulong messageId = ulong.Parse(command.Data.Options.First(x => x.Name == "message-id").Value.ToString());
         IRole role = command.Data.Options.First(x => x.Name == "role").Value as IRole;
         string emote = command.Data.Options.First(x => x.Name == "emote").Value.ToString();
-        BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel").ConfigureAwait(false);
-        BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild").ConfigureAwait(false);
-        if (command.Channel.Name != restrictedCommandChannelSetting.Value && command.GuildId != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
-
         await _selfAssignRoleService.CreateReactionRole(messageId, role.Mention, emote).ConfigureAwait(false);
         await command.ModifyOriginalResponseAsync(x => x.Content = "Reaction role created!");
     }

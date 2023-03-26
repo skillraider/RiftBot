@@ -138,10 +138,6 @@ public class ClanModule
                 return;
             }
 
-            BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel").ConfigureAwait(false);
-            BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild").ConfigureAwait(false);
-            if (command.Channel.Name != restrictedCommandChannelSetting.Value && command.GuildId != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
-
             bool pvm = preference.ToLower() == "pvm";
             await _clanService.SetPreference(playerName, pvm).ConfigureAwait(false);
             await command.ModifyOriginalResponseAsync(x => x.Content = $"{playerName}'s preference has been set to {preference}").ConfigureAwait(false);
@@ -168,43 +164,35 @@ public class ClanModule
 
     public async Task GetRankUps(SocketSlashCommand command)
     {
-        bool force = false;
-        BotSetting restrictedCommandChannelSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandChannel").ConfigureAwait(false);
-        BotSetting restrictedCommandGuildSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RestrictedCommandGuild").ConfigureAwait(false);
-        if (command.Channel.Name != restrictedCommandChannelSetting.Value && command.GuildId != ulong.Parse(restrictedCommandGuildSetting.Value)) return;
-
-        if (!force)
+        List<RandomMessage> randomMessages = new()
         {
-            List<RandomMessage> randomMessages = new()
+            new($"No {Emote.Parse("<:Thefinger:725207592950956153>")}", false),
+            new("Do it yourself!", false),
+            new("Fuck off!", false),
+            new("Fine... give me a few seconds", true, 3000),
+            new("Zzzzzzzzz", false),
+            new("Huh? Who? What?...... Oh, you again.... Go away", false),
+            new("I need a raise", true, 3000)
+        };
+
+        BotSetting rankupsTrollChanceSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RankupsTrollChance").ConfigureAwait(false);
+
+        Random r = new();
+        if (r.NextSingle() <= float.Parse(rankupsTrollChanceSetting.Value))
+        {
+            int index = r.Next(0, randomMessages.Count);
+            RandomMessage randomMessage = randomMessages[index];
+
+            await command.ModifyOriginalResponseAsync((message) =>
             {
-                new($"No {Emote.Parse("<:Thefinger:725207592950956153>")}", false),
-                new("Do it yourself!", false),
-                new("Fuck off!", false),
-                new("Fine... give me a few seconds", true, 3000),
-                new("Zzzzzzzzz", false),
-                new("Huh? Who? What?...... Oh, you again.... Go away", false),
-                new("I need a raise", true, 3000)
-            };
+                message.Content = randomMessage.Message;
+            }).ConfigureAwait(false);
 
-            BotSetting rankupsTrollChanceSetting = await _context.BotSettings.FirstOrDefaultAsync(x => x.Name == "RankupsTrollChance").ConfigureAwait(false);
+            if (!randomMessage.RunAnyway) return;
 
-            Random r = new();
-            if (r.NextSingle() <= float.Parse(rankupsTrollChanceSetting.Value))
-            {
-                int index = r.Next(0, randomMessages.Count);
-                RandomMessage randomMessage = randomMessages[index];
-
-                await command.ModifyOriginalResponseAsync((message) =>
-                {
-                    message.Content = randomMessage.Message;
-                }).ConfigureAwait(false);
-
-                if (!randomMessage.RunAnyway) return;
-
-                IDisposable typingContext = command.Channel.EnterTypingState();
-                await Task.Delay(randomMessage.Timeout).ConfigureAwait(false);
-                typingContext.Dispose();
-            }
+            IDisposable typingContext = command.Channel.EnterTypingState();
+            await Task.Delay(randomMessage.Timeout).ConfigureAwait(false);
+            typingContext.Dispose();
         }
 
         var embed = new EmbedBuilder();
