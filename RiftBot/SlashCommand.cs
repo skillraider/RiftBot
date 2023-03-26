@@ -11,4 +11,6 @@ public class SlashCommand
     public Func<SocketSlashCommand, Task>? CommandHandler { get; set; }
 
     public List<SlashCommandOption>? Options { get; set; } = new();
+
+    public bool HasModal { get; set; }
 }

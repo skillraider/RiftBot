@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using RiftBot.Modules;
+using RunePixels.Sdk;
 
 namespace RiftBot;
 
@@ -24,6 +25,10 @@ class Program
             })
             .ConfigureServices((hostingContext, services) =>
             {
+                services.AddHttpClient<RunePixelsClient>(client =>
+                {
+                    client.BaseAddress = new("https://runepixels.com:5000/");
+                });
                 services.AddSingleton(new DiscordSocketConfig()
                 {
                     GatewayIntents = GatewayIntents.All
@@ -40,6 +45,7 @@ class Program
 
                 services.AddScoped<ClanModule>();
                 services.AddScoped<ClanService>();
+                services.AddScoped<CompetitionsModule>();
 
                 services.AddScoped<EventService>();
 

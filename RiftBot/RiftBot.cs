@@ -1,4 +1,5 @@
-﻿using RiftBot.Modules;
+﻿using Discord;
+using RiftBot.Modules;
 
 namespace RiftBot;
 
@@ -13,13 +14,14 @@ public class RiftBot
     private readonly SelfAssignRoleService _selfAssignRoleService;
     private readonly GuildMetadataModule _guildMetadataModule;
     private readonly SettingModule _settingModule;
+    private readonly CompetitionsModule _competitionsModule;
 
     private readonly List<SlashCommand> _commands = new();
 
     public RiftBot(ILogger<RiftBot> logger, IConfiguration config, DiscordSocketClient discordSocketClient,
         ClanModule clanModule, HiscoresModule hiscoresModule, ReactionRolesModule reactionRolesModule,
         SelfAssignRoleService selfAssignRoleService, GuildMetadataModule guildMetadataModule,
-        SettingModule settingModule)
+        SettingModule settingModule, CompetitionsModule competitionsModule)
     {
         _logger = logger;
         _config = config;
@@ -30,6 +32,7 @@ public class RiftBot
         _selfAssignRoleService = selfAssignRoleService;
         _guildMetadataModule = guildMetadataModule;
         _settingModule = settingModule;
+        _competitionsModule = competitionsModule;
 
         _logger.LogInformation(Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
 
@@ -38,6 +41,7 @@ public class RiftBot
         _commands.AddRange(_reactionRolesModule.RegisterSlashCommands());
         _commands.AddRange(_guildMetadataModule.RegisterSlashCommands());
         _commands.AddRange(_settingModule.RegisterSlashCommands());
+        _commands.AddRange(_competitionsModule.RegisterSlashCommands());
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)
@@ -49,6 +53,8 @@ public class RiftBot
             _discordSocketClient.SlashCommandExecuted += SlashCommandExecutedAsync;
             _discordSocketClient.ReactionAdded += ReactionAdded;
             _discordSocketClient.ReactionRemoved += ReactionRemoved;
+            _discordSocketClient.ModalSubmitted += ModalSubmitted;
+            _discordSocketClient.SelectMenuExecuted += SelectMenuExecuted;
 
             await _discordSocketClient.LoginAsync(TokenType.Bot, _config.GetSection("Token").Value);
             await _discordSocketClient.StartAsync();
@@ -58,6 +64,22 @@ public class RiftBot
         catch (Exception ex)
         {
             _logger.LogInformation($"{DateTime.Now:G} - RiftBot.Run: {ex}");
+        }
+    }
+
+    private async Task SelectMenuExecuted(SocketMessageComponent messageComponent)
+    {
+        if (messageComponent.Data.CustomId == "competitionSelectMenu")
+        {
+            await _competitionsModule.GetCompetitionStats(messageComponent);
+        }
+    }
+
+    private async Task ModalSubmitted(SocketModal modal)
+    {
+        if (modal.Data.CustomId == "createCompetition")
+        {
+            await _competitionsModule.CreateCompetition(modal);
         }
     }
 
@@ -117,8 +139,12 @@ public class RiftBot
 
     private async Task SlashCommandExecutedAsync(SocketSlashCommand command)
     {
-        await command.DeferAsync();
         SlashCommand slashCommand = _commands.FirstOrDefault(x => x.CommandName == command.CommandName);
+        if (!slashCommand.HasModal)
+        {
+            await command.DeferAsync();
+        }
+
         if (slashCommand is not null)
         {
             await slashCommand.CommandHandler(command);
