@@ -106,11 +106,6 @@ public class RiftBot
             {
                 foreach (SlashCommand command in _commands)
                 {
-                    if (guild.Name == "Rift" && (command.CommandName.Contains("setting") || command.CommandName == "create-reaction-role" || command.CommandName == "set-rank-preference"))
-                    {
-                        continue;
-                    }
-
                     SlashCommandBuilder guildCommand = new SlashCommandBuilder();
                     guildCommand.WithName(command.CommandName);
                     guildCommand.WithDescription(command.Description);
